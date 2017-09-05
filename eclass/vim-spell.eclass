@@ -62,14 +62,10 @@
 # spell files. It's best to let upstream know if you've generated spell files
 # for another language rather than keeping them Gentoo-specific.
 
-inherit eutils
+inherit eutils vim-runtime
 
 EXPORT_FUNCTIONS src_install pkg_postinst
 
-IUSE=""
-DEPEND="|| ( >=app-editors/vim-7_alpha
-	>=app-editors/gvim-7_alpha )"
-RDEPEND="${DEPEND}"
 SRC_URI="mirror://gentoo/${P}.tar.bz2"
 SLOT="0"
 
@@ -87,12 +83,6 @@ SLOT="0"
 # The default value is ${PN} stripped of the "vim-spell-" string.
 : ${VIM_SPELL_LOCALE:="${PN/vim-spell-/}"}
 
-# @ECLASS-VARIABLE: VIM_SPELL_DIRECTORY
-# @INTERNAL
-# @DESCRIPTION:
-# This variable defines the path to Vim spell files.
-: ${VIM_SPELL_DIRECTORY:="${EPREFIX}/usr/share/vim/vimfiles/spell/"}
-
 # @ECLASS-VARIABLE: DESCRIPTION
 # @DESCRIPTION:
 # This variable defines the DESCRIPTION for Vim spell ebuilds.
@@ -103,12 +93,16 @@ SLOT="0"
 # This variable defines the HOMEPAGE for Vim spell ebuilds.
 : ${HOMEPAGE:="https://www.vim.org"}
 
+vim_spell_directory() {
+	echo "$(vimfiles_directory)/spell/"
+}
+
 # @FUNCTION: vim-spell_src_install
 # @DESCRIPTION:
 # This function installs Vim spell files.
 vim-spell_src_install() {
-	dodir "${VIM_SPELL_DIRECTORY}"
-	insinto "${VIM_SPELL_DIRECTORY}"
+	dodir "$(vim_spell_directory)"
+	insinto "$(vim_spell_directory)"
 
 	local had_spell_file=
 	local f
@@ -144,7 +138,7 @@ vim-spell_pkg_postinst() {
 	elog "The following (Vim internal, not file) encodings are supported for"
 	elog "this language:"
 	local f enc
-	for f in "${EROOT}${VIM_SPELL_DIRECTORY}/${VIM_SPELL_LOCALE}".*.spl; do
+	for f in "${EROOT}$(vim_spell_directory)${VIM_SPELL_LOCALE}".*.spl; do
 		enc="${f##*/${VIM_SPELL_LOCALE}.}"
 		enc="${enc%.spl}"
 		[[ -z "${enc}" ]] && continue

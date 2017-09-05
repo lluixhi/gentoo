@@ -1,4 +1,4 @@
-# Copyright 1999-2011 Gentoo Foundation
+# Copyright 1999-2017 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 #
 # This eclass is used by vim.eclass and vim-plugin.eclass to update
@@ -10,22 +10,28 @@
 # DEPEND in vim-plugin or by whatever version of vim is being
 # installed by the eclass.
 
+inherit vim-runtime
+
+run_helptags() {
+	# Update tags; need a vim binary for this
+	if [[ -n "$1" ]]; then
+		einfo "Updating documentation tags in $2"
+		DISPLAY= $1 -u NONE -n \
+			'+set nobackup nomore' \
+			"+helptags $2/doc" \
+			'+qa!' </dev/null &>/dev/null
+	fi
+}
 
 update_vim_helptags() {
 	has "${EAPI:-0}" 0 1 2 && ! use prefix && EROOT="${ROOT}"
 	local vimfiles vim d s
 
 	# This is where vim plugins are installed
-	vimfiles="${EROOT}"/usr/share/vim/vimfiles
+	vimfiles="${EROOT}$(vimfiles_directory)"
 
 	if [[ $PN != vim-core ]]; then
-		# Find a suitable vim binary for updating tags :helptags
-		vim=$(type -P vim 2>/dev/null)
-		[[ -z "$vim" ]] && vim=$(type -P gvim 2>/dev/null)
-		[[ -z "$vim" ]] && vim=$(type -P kvim 2>/dev/null)
-		if [[ -z "$vim" ]]; then
-			ewarn "No suitable vim binary to rebuild documentation tags"
-		fi
+		vim="$(vim_binary)"
 	fi
 
 	# Make vim not try to connect to X. See :help gui-x11-start
@@ -59,14 +65,16 @@ update_vim_helptags() {
 		fi
 
 		# Update tags; need a vim binary for this
-		if [[ -n "$vim" ]]; then
-			einfo "Updating documentation tags in $d"
-			DISPLAY= $vim -u NONE -U NONE -T xterm -X -n -f \
-				'+set nobackup nomore' \
-				"+helptags $d/doc" \
-				'+qa!' </dev/null &>/dev/null
-		fi
+		run_helptags $vim $d
 	done
+
+	# For neovim, just run :helptags on the tag directory
+	if use nvim ; then
+		[[ -d $vimfiles/doc ]] || break
+
+		# Update tags; need a vim binary for this
+		run_helptags $vim $vimfiles
+	fi
 
 	[[ -n "${vim}" && -f "${vim}" ]] && rm "${vim}"
 }
